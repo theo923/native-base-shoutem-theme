@@ -1,7 +1,13 @@
-import React, { Children } from 'react';
-import PropTypes from 'prop-types';
-import Theme, { ThemeShape } from './Theme';
-import normalizeStyle from './StyleNormalizer/normalizeStyle';
+import React, { createContext, useContext } from "react";
+import PropTypes from "prop-types";
+import Theme from "./Theme";
+
+export const ThemeContext = createContext({
+  theme: Theme.getDefaultTheme(),
+  foregroundColor: null,
+});
+
+export const useTheme = () => useContext(ThemeContext);
 
 /**
  *  Provides a theme to child components trough context.
@@ -16,27 +22,17 @@ export default class StyleProvider extends React.Component {
     style: {},
   };
 
-  static childContextTypes = {
-    theme: ThemeShape.isRequired,
-  };
-
-  constructor(props, context) {
-    super(props, context);
+  constructor(props) {
+    super(props);
     this.state = {
       theme: this.createTheme(props),
     };
   }
 
-  getChildContext() {
-    return {
-      theme: this.state.theme,
-    };
-  }
-
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.style !== this.props.style) {
+  componentDidUpdate(prevProps) {
+    if (prevProps.style !== this.props.style) {
       this.setState({
-        theme: this.createTheme(nextProps),
+        theme: this.createTheme(this.props),
       });
     }
   }
@@ -47,7 +43,12 @@ export default class StyleProvider extends React.Component {
 
   render() {
     const { children } = this.props;
+    const { theme } = this.state;
 
-    return Children.only(children);
+    return (
+      <ThemeContext.Provider value={{ theme }}>
+        {React.Children.only(children)}
+      </ThemeContext.Provider>
+    );
   }
 }

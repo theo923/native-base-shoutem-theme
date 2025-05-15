@@ -7,6 +7,7 @@ import { StyleSheet } from "react-native";
 
 import Theme, { ThemeShape } from "./Theme";
 import { resolveComponentStyle } from "./resolveComponentStyle";
+import { ThemeContext } from "./StyleProvider";
 
 const themeCache = {};
 
@@ -113,26 +114,14 @@ export default (
     }
 
     class StyledComponent extends React.Component {
-      static contextTypes = {
-        theme: ThemeShape,
-        // The style inherited from the parent
-        // parentStyle: PropTypes.object,
-        parentPath: PropTypes.array
-      };
-
-      static childContextTypes = {
-        // Provide the parent style to child components
-        // parentStyle: PropTypes.object,
-        // resolveStyle: PropTypes.func,
-        parentPath: PropTypes.array
-      };
+      static contextType = ThemeContext;
 
       static propTypes = {
         // Element style that overrides any other style of the component
         style: PropTypes.oneOfType([
           PropTypes.object,
           PropTypes.number,
-          PropTypes.array
+          PropTypes.array,
         ]),
         // The style variant names to apply to this component,
         // multiple variants may be separated with a space character
@@ -141,11 +130,11 @@ export default (
         // style to their children, i.e., the children
         // will behave as they are placed directly below
         // the parent of a virtual element.
-        virtual: PropTypes.bool
+        virtual: PropTypes.bool,
       };
 
       static defaultProps = {
-        virtual: options.virtual
+        virtual: options.virtual,
       };
 
       static displayName = `Styled(${componentDisplayName})`;
@@ -165,16 +154,15 @@ export default (
         );
 
         this.setWrappedInstance = this.setWrappedInstance.bind(this);
-        this.resolveConnectedComponentStyle = this.resolveConnectedComponentStyle.bind(
-          this
-        );
+        this.resolveConnectedComponentStyle =
+          this.resolveConnectedComponentStyle.bind(this);
         this.state = {
           style: finalStyle,
           // AddedProps are additional WrappedComponent props
           // Usually they are set trough alternative ways,
           // such as theme style, or trough options
           addedProps: this.resolveAddedProps(),
-          styleNames
+          styleNames,
         };
       }
 
@@ -232,16 +220,6 @@ export default (
         }
       }
 
-      getChildContext() {
-        return {
-          // parentStyle: this.props.virtual ?
-          //   this.context.parentStyle :
-          //   this.state.childrenStyle,
-          // resolveStyle: this.resolveConnectedComponentStyle,
-          parentPath: this.getParentPath()
-        };
-      }
-
       componentWillReceiveProps(nextProps, nextContext) {
         const styleNames = this.getStyleNames(nextProps);
         const style = nextProps.style;
@@ -256,7 +234,7 @@ export default (
           this.setState({
             style: finalStyle,
             // childrenStyle: resolvedStyle.childrenStyle,
-            styleNames
+            styleNames,
           });
         }
       }
@@ -372,21 +350,21 @@ export default (
       }
 
       render() {
-        // console.log('themeCache', themeCache);
-
-        // if(componentStyleName == 'NativeBase.Text') {
-        //   console.log(this.state.style);
-        //   console.log(themeCache);
-        // }
-
         const { addedProps, style } = this.state;
+        const value = {
+          ...this.context,
+          parentPath: this.getParentPath(),
+        };
+
         return (
-          <WrappedComponent
-            {...this.props}
-            {...addedProps}
-            style={style}
-            ref={this.setWrappedInstance}
-          />
+          <ThemeContext.Provider value={value}>
+            <WrappedComponent
+              {...this.props}
+              {...addedProps}
+              style={style}
+              ref={this.setWrappedInstance}
+            />
+          </ThemeContext.Provider>
         );
       }
     }
